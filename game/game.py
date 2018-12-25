@@ -4,6 +4,8 @@ import math
 pygame.init()
 
 window = pygame.display.set_mode((768,512))
+pygame.font.init()
+myfont = pygame.font.SysFont('Consolas', 12)
 clock = pygame.time.Clock()
 
 player_img = pygame.image.load("jet-vector-small.png")
@@ -17,12 +19,17 @@ rotate = [pygame.transform.rotate(player_img, 45), pygame.transform.rotate(playe
 enemy_img = pygame.image.load("enemy.png")
 explosion = [pygame.image.load("e1.png"), pygame.image.load("e2.png"), pygame.image.load("e3.png"), pygame.image.load("e4.png"), pygame.image.load("e5.png")]
 
+enemyCount = myfont.render('Enemy count: ', False, (0, 0, 0))
+projCount = myfont.render('Projectile count: ', False, (0, 20, 0))
+
+
 bg = pygame.image.load('background.png').convert()
 bgX = 0
 bgRelX = 0
 
 enemyTimer = 100
 collision = (False, None)
+
 
 class Player():
     def __init__(self, y, wid, hgt):
@@ -130,6 +137,7 @@ class Enemy():
         self.explosionCycle = 0
         self.dying = False
         self.isShooting = False
+        self.shootTimer = 
     def death(self):
         self.dying = True
 
@@ -199,6 +207,9 @@ def redraw():
         proj.draw(window)
     for proj in enemyProj:
         proj.draw(window)
+    
+    window.blit(enemyCount,(0,0))
+    window.blit(projCount,(0,20))
 
     pygame.display.update()
 
@@ -217,5 +228,7 @@ while run:
     p.controls(keys)
     checkCollisions()
     redraw()
+    enemyCount = myfont.render('Enemy count: ' + str(len(enemies)), False, (0, 0, 0))
+    projCount = myfont.render('Projectile count: ' + str(len(projectiles)), False, (0, 0, 0))
 
 pygame.quit()
