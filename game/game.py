@@ -47,16 +47,16 @@ class Player():
     def death(self):
         global collision
         if collision[0]:
-            while self.explosionCycle < 5:
+            while self.explosionCycle < 10:
                 clock.tick(30)
-                window.blit(explosion[self.explosionCycle], (238, self.y - 32))
-                window.blit(explosion[self.explosionCycle], (collision[1].x, collision[1].y - 32))
+                window.blit(explosion[self.explosionCycle//2], (238, self.y - 32))
+                window.blit(explosion[self.explosionCycle//2], (collision[1].x, collision[1].y - 32))
                 self.explosionCycle += 1
                 pygame.display.update()
         else:
-            while self.explosionCycle < 5:
+            while self.explosionCycle < 10:
                 clock.tick(30)
-                window.blit(explosion[self.explosionCycle], (238, self.y - 32))
+                window.blit(explosion[self.explosionCycle//2], (238, self.y - 32))
                 self.explosionCycle += 1
                 pygame.display.update()
         gameover()
@@ -76,7 +76,7 @@ class Player():
             self.animateCycle += 1
         if keys[pygame.K_SPACE]:
             if not self.isShooting:
-                playerShoot()
+                self.playerShoot()
         else:
             self.isShooting = False
         if p.isJumping:
@@ -90,6 +90,10 @@ class Player():
                 p.isJumping = False
                 p.jumpTime = 10
                 p.neg = 1
+    def playerShoot(self):
+        self.isShooting = True
+        projectiles.append(Projectile())
+        
 p = Player(250, player_img.get_rect().width, player_img.get_rect().height)
 
 class Projectile():
@@ -103,6 +107,15 @@ class Projectile():
         self.y += self.vector[1]
         if self.x > 780:
             projectiles.remove(self)
+class EnemyProjectile():
+    def __init__(self, enemy):
+        self.x = round(enemy.x)
+        self.y = round(enemy.y + 11)
+    def draw(self, window):
+        pygame.draw.circle(window, (255,0,0), (self.x, self.y), 5)
+        self.x -= 10
+        if self.x + 10 < 0:
+            enemyProj.remove(self)
 
 class Enemy():
     def __init__(self, x, wid, hgt, hp):
@@ -116,6 +129,7 @@ class Enemy():
         self.dist = 0
         self.explosionCycle = 0
         self.dying = False
+        self.isShooting = False
     def death(self):
         self.dying = True
 
@@ -125,17 +139,26 @@ class Enemy():
         self.x -= self.velX
         self.y -= self.velY
         window.blit(enemy_img, (self.x, self.y))
+        if self.x + self.wid <= 0:
+            enemies.remove(self)
         if self.dying:
             if self.explosionCycle < 10:
                 window.blit(explosion[self.explosionCycle//2], (self.x, self.y - 32))
                 self.explosionCycle += 1
             else:
                 enemies.remove(self)
+        if self.dist < 10:
+            if not self.isShooting:
+                self.enemyShoot()
+        else:
+            self.isShooting = False
+    def enemyShoot(self):
+        self.isShooting = True
+        enemyProj.append(EnemyProjectile(self))
+        
 
 projectiles = []
-def playerShoot():
-    p.isShooting = True
-    projectiles.append(Projectile())
+enemyProj = []
 
 enemies = []
 def spawnEnemy():
@@ -144,12 +167,14 @@ def spawnEnemy():
 def checkCollisions():
     global collision
     for proj in projectiles:
-        projDot = [proj.x + 2.5, proj.y + 2.5]
+        projDot = [proj.x + 5, proj.y + 5]
         for enemy in enemies:
             if projDot[1] >= enemy.y and projDot[1] <= (enemy.y + enemy.hgt):
                 if projDot[0] >= enemy.x and projDot[0] <= (enemy.x + enemy.wid):
-                    projectiles.remove(proj)
                     enemy.death()
+                    projectiles.remove(proj)
+                    break
+
     for enemy in enemies:
         enemyDot = [enemy.x + 5, enemy.y + 11]
         if enemyDot[0] >= p.x and enemyDot[0] <= (p.x + p.wid):
@@ -171,6 +196,8 @@ def redraw():
     for enemy in enemies:
         enemy.draw(window)
     for proj in projectiles:
+        proj.draw(window)
+    for proj in enemyProj:
         proj.draw(window)
 
     pygame.display.update()
