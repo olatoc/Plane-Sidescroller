@@ -19,17 +19,25 @@ rotate = [pygame.transform.rotate(player_img, 45), pygame.transform.rotate(playe
 enemy_img = pygame.image.load("enemy.png")
 explosion = [pygame.image.load("e1.png"), pygame.image.load("e2.png"), pygame.image.load("e3.png"), pygame.image.load("e4.png"), pygame.image.load("e5.png")]
 
-enemyCount = myfont.render('Enemy count: ', False, (0, 0, 0))
+numEnemies = myfont.render('Enemy count: ', False, (0, 0, 0))
 projCount = myfont.render('Projectile count: ', False, (0, 20, 0))
-
 
 bg = pygame.image.load('background.png').convert()
 bgX = 0
 bgRelX = 0
 
+level = 0
+
 enemyTimer = 100
 collision = (False, None)
 
+#level globals
+ammoCount = 30
+enemyCount = 0
+enemySpeed = 0
+enemyFireRate = 0
+enemySpawnRate = 0
+totalSpawned = 0
 
 class Player():
     def __init__(self, y, wid, hgt):
@@ -42,14 +50,11 @@ class Player():
 
         self.animateCycle = 9
 
-        self.isJumping = False
-        self.jumpTime = 10
-        self.neg = 1
-
+        self.ammo = ammoCount
         self.isShooting = 0
+        self.killCount = 0
 
         self.explosionCycle = 0
-        self.dead = 0
 
     def death(self):
         global collision
@@ -71,7 +76,7 @@ class Player():
     def draw(self, window):
         window.blit(rotate[self.animateCycle], (256, self.y))
         self.velY = self.animateCycle - 9
-        if (self.y + self.velY) > 0 and not self.dead:
+        if (self.y + self.velY) > 0:
             self.y += self.velY
         if (self.y + self.hgt + self.velY) >= 500:
             self.death()
@@ -82,25 +87,16 @@ class Player():
         elif keys[pygame.K_RIGHT] and self.animateCycle <= 17:
             self.animateCycle += 1
         if keys[pygame.K_SPACE]:
-            if not self.isShooting:
+            if not self.isShooting and self.ammo > 0:
                 self.playerShoot()
         else:
             self.isShooting = False
-        if p.isJumping:
-            if p.jumpTime >= -10:
-                p.neg = 1
-                if p.jumpTime < 0:
-                    p.neg = -1
-                p.y -= p.jumpTime**2 * p.neg * 0.5
-                p.jumpTime -= 1
-            else:
-                p.isJumping = False
-                p.jumpTime = 10
-                p.neg = 1
+
     def playerShoot(self):
         self.isShooting = True
         projectiles.append(Projectile())
-        
+        self.ammo -= 1
+
 p = Player(250, player_img.get_rect().width, player_img.get_rect().height)
 
 class Projectile():
@@ -120,25 +116,29 @@ class EnemyProjectile():
         self.y = round(enemy.y + 11)
     def draw(self, window):
         pygame.draw.circle(window, (255,0,0), (self.x, self.y), 5)
-        self.x -= 10
+        self.x -= 20
         if self.x + 10 < 0:
             enemyProj.remove(self)
 
 class Enemy():
     def __init__(self, x, wid, hgt, hp):
+        global enemyFireRate
         self.x = x
         self.y = random.choice(range(10,502))
         self.wid = wid
         self.hgt = hgt
         self.hp = hp
         self.velY = 0
-        self.velX = 3
+        self.velX = enemySpeed
         self.dist = 0
         self.explosionCycle = 0
         self.dying = False
         self.isShooting = False
-        self.shootTimer = 
+        self.shootTimer = enemyFireRate
     def death(self):
+        global enemyCount
+        if not self.dying:
+            p.killCount += 1
         self.dying = True
 
     def draw(self, window):
@@ -151,26 +151,32 @@ class Enemy():
             enemies.remove(self)
         if self.dying:
             if self.explosionCycle < 10:
-                window.blit(explosion[self.explosionCycle//2], (self.x, self.y - 32))
+                window.blit(explosion[self.explosionCycle//2], (self.x - 16, self.y - 32))
                 self.explosionCycle += 1
             else:
                 enemies.remove(self)
-        if self.dist < 10:
-            if not self.isShooting:
+        else:
+            window.blit(enemy_img, (self.x, self.y))
+        if self.shootTimer <= 0:
+            if abs(self.dist) < 10:
                 self.enemyShoot()
         else:
             self.isShooting = False
+            self.shootTimer -= 1
     def enemyShoot(self):
+        global enemyShootRate
         self.isShooting = True
+        self.shootTimer = enemyFireRate
         enemyProj.append(EnemyProjectile(self))
-        
 
 projectiles = []
 enemyProj = []
 
 enemies = []
 def spawnEnemy():
+    global totalSpawned
     enemies.append(Enemy(768, enemy_img.get_rect().width, enemy_img.get_rect().height, 100))
+    totalSpawned += 1
 
 def checkCollisions():
     global collision
@@ -182,7 +188,13 @@ def checkCollisions():
                     enemy.death()
                     projectiles.remove(proj)
                     break
-
+    for proj in enemyProj:
+        projDot = [proj.x + 5, proj.y + 5]
+        if projDot[1] >= (p.y + p.hgt*.25) and projDot[1] <= (p.y + p.hgt*.75):
+            if projDot[0] >= p.x and projDot[0] <= (p.x + p.wid):
+                p.death()
+                enemyProj.remove(proj)
+                break
     for enemy in enemies:
         enemyDot = [enemy.x + 5, enemy.y + 11]
         if enemyDot[0] >= p.x and enemyDot[0] <= (p.x + p.wid):
@@ -190,7 +202,7 @@ def checkCollisions():
                 collision = (True, enemy)
                 p.death()
 def redraw():
-    global bgX, bgRelX, enemyTimer
+    global bgX, bgRelX, enemyTimer, enemyCount, totalSpawned, level
     bgRelX = bgX % bg.get_rect().width
     window.blit(bg,(bgRelX - bg.get_rect().width,0))
     if bgRelX < 768:
@@ -199,36 +211,91 @@ def redraw():
 
     p.draw(window)
     if enemyTimer <= 0:
-        spawnEnemy()
-        enemyTimer = 25
+        if p.killCount <= enemyCount and totalSpawned < enemyCount:
+            spawnEnemy()
+            enemyTimer = 100
+
     for enemy in enemies:
         enemy.draw(window)
     for proj in projectiles:
         proj.draw(window)
     for proj in enemyProj:
         proj.draw(window)
-    
-    window.blit(enemyCount,(0,0))
+
+    numEnemies = myfont.render('Enemy count: ' + str(enemyCount - p.killCount), False, (0, 0, 0))
+    projCount = myfont.render('Ammo: ' + str(p.ammo), False, (0, 0, 0))
+    levelBanner = myfont.render('Level ' + str(level), False, (255, 255, 255))
+    window.blit(numEnemies,(0,0))
     window.blit(projCount,(0,20))
+    window.blit(levelBanner,(0,40))
 
     pygame.display.update()
+
+def initialize():
+    startup_banner = myfont.render('PRESS ENTER TO START', False, (255, 255, 255))
+    while True:
+        clock.tick(30)
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+        if pygame.key.get_pressed()[pygame.K_RETURN]:
+            break
+        window.blit(startup_banner, (300, 256))
+        pygame.display.update()
+    levelOne()
+
+def levelOne():
+    global level, enemyCount, enemySpeed, enemyFireRate, ammoCount, enemySpawnRate
+    level = 1
+    enemyCount = 5
+    enemySpeed = 2
+    enemyFireRate = 10
+    enemySpawnRate = 1
+    p.ammo = 30
+    ammoCount = 30
+def levelTwo():
+    global level, enemyCount, enemySpeed, enemyFireRate, ammoCount, enemySpawnRate
+    level = 2
+    enemyCount = 10
+    enemySpeed = 3
+    enemyFireRate = 5
+    enemySpawnRate = 2
+    p.ammo = 30
+    ammoCount = 30
+def levelThree():
+    global level, enemyCount, enemySpeed, enemyFireRate, ammoCount, enemySpawnRate
+    level = 3
+    enemyCount = 15
+    enemySpeed = 4
+    enemyFireRate = 1
+    enemySpawnRate = 3
+    p.ammo = 30
+    ammoCount = 30
+
+levels = {1: levelOne,
+          2: levelTwo,
+          3: levelThree}
 
 def gameover():
     pygame.quit()
 
-run = True
-while run:
-    clock.tick(30)
-    enemyTimer -= 1
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            pygame.quit()
+def main():
+    global level, enemyCount, enemySpeed, enemyFireRate, ammoCount, enemySpawnRate, enemyTimer
+    initialize()
 
-    keys = pygame.key.get_pressed()
-    p.controls(keys)
-    checkCollisions()
-    redraw()
-    enemyCount = myfont.render('Enemy count: ' + str(len(enemies)), False, (0, 0, 0))
-    projCount = myfont.render('Projectile count: ' + str(len(projectiles)), False, (0, 0, 0))
+    run = True
+    while run:
+        clock.tick(30)
+        enemyTimer -= enemySpawnRate
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
 
-pygame.quit()
+        keys = pygame.key.get_pressed()
+        p.controls(keys)
+        checkCollisions()
+        #print(level)
+        if enemyCount == p.killCount and level >= 1:
+            levels[level + 1]()
+        redraw()
+main()
