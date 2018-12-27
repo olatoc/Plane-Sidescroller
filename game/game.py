@@ -136,7 +136,6 @@ class Enemy():
         self.isShooting = False
         self.shootTimer = enemyFireRate
     def death(self):
-        global enemyCount
         if not self.dying:
             p.killCount += 1
         self.dying = True
@@ -192,7 +191,7 @@ def checkCollisions():
         projDot = [proj.x + 5, proj.y + 5]
         if projDot[1] >= (p.y + p.hgt*.25) and projDot[1] <= (p.y + p.hgt*.75):
             if projDot[0] >= p.x and projDot[0] <= (p.x + p.wid):
-                p.death()
+                #p.death()
                 enemyProj.remove(proj)
                 break
     for enemy in enemies:
@@ -258,17 +257,26 @@ def levelTwo():
     level = 2
     enemyCount = 10
     enemySpeed = 3
-    enemyFireRate = 5
+    enemyFireRate = 8
     enemySpawnRate = 2
     p.ammo = 30
     ammoCount = 30
 def levelThree():
     global level, enemyCount, enemySpeed, enemyFireRate, ammoCount, enemySpawnRate
     level = 3
-    enemyCount = 15
+    enemyCount = 12
     enemySpeed = 4
-    enemyFireRate = 1
+    enemyFireRate = 5
     enemySpawnRate = 3
+    p.ammo = 30
+    ammoCount = 30
+def levelFour():
+    global level, enemyCount, enemySpeed, enemyFireRate, ammoCount, enemySpawnRate
+    level = 4
+    enemyCount = 15
+    enemySpeed = 5
+    enemyFireRate = 3
+    enemySpawnRate = 4
     p.ammo = 30
     ammoCount = 30
 
@@ -280,7 +288,7 @@ def gameover():
     pygame.quit()
 
 def main():
-    global level, enemyCount, enemySpeed, enemyFireRate, ammoCount, enemySpawnRate, enemyTimer
+    global level, enemyCount, enemySpeed, enemyFireRate, ammoCount, enemySpawnRate, enemyTimer, totalSpawned
     initialize()
 
     run = True
@@ -297,5 +305,7 @@ def main():
         #print(level)
         if enemyCount == p.killCount and level >= 1:
             levels[level + 1]()
+            p.killCount = 0
+            totalSpawned = 0
         redraw()
 main()
