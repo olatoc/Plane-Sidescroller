@@ -1,4 +1,4 @@
-# Plane-Sidescroller
+# python-plane-game
 A simple 2D sidescroller game written in Python with Pygame
 
 Game mechanics:
