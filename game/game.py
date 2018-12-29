@@ -162,6 +162,7 @@ class Enemy():
         else:
             self.isShooting = False
             self.shootTimer -= 1
+        #pygame.draw.rect(window, (255,0,0), pygame.Rect((self.x, self.y, self.wid, self.hgt)), 5)
     def enemyShoot(self):
         global enemyShootRate
         self.isShooting = True
@@ -182,8 +183,8 @@ def checkCollisions():
     for proj in projectiles:
         projDot = [proj.x + 5, proj.y + 5]
         for enemy in enemies:
-            if projDot[1] >= enemy.y and projDot[1] <= (enemy.y + enemy.hgt):
-                if projDot[0] >= enemy.x and projDot[0] <= (enemy.x + enemy.wid):
+            if projDot[0] >= enemy.x and projDot[0] <= (enemy.x + enemy.wid):
+                if projDot[1] >= enemy.y and projDot[1] <= (enemy.y + enemy.hgt):
                     enemy.death()
                     projectiles.remove(proj)
                     break
@@ -191,7 +192,7 @@ def checkCollisions():
         projDot = [proj.x + 5, proj.y + 5]
         if projDot[1] >= (p.y + p.hgt*.25) and projDot[1] <= (p.y + p.hgt*.75):
             if projDot[0] >= p.x and projDot[0] <= (p.x + p.wid):
-                #p.death()
+                p.death()
                 enemyProj.remove(proj)
                 break
     for enemy in enemies:
@@ -200,6 +201,8 @@ def checkCollisions():
             if enemyDot[1] >= p.y and enemyDot[1] <= (p.y + p.hgt):
                 collision = (True, enemy)
                 p.death()
+                break
+
 def redraw():
     global bgX, bgRelX, enemyTimer, enemyCount, totalSpawned, level
     bgRelX = bgX % bg.get_rect().width
